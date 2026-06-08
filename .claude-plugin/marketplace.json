@@ -1,0 +1,24 @@
+{
+  "name": "planfi",
+  "owner": {
+    "name": "holdequity",
+    "url": "https://github.com/holdequity"
+  },
+  "metadata": {
+    "description": "planfi skills — financial planning and real-estate investment analysis powered by the public planfi MCP.",
+    "version": "1.3.0"
+  },
+  "plugins": [
+    {
+      "name": "long-term-rental-analyzer",
+      "source": "./skills/long-term-rental-analyzer",
+      "description": "Long-term-rental after-tax analyzer: 27.5-yr depreciation shelter, ~25% recapture at sale, 1031 like-kind deferral, and a Schedule E P&L (rent, vacancy, opex, NOI). Thin orchestration over the planfi MCP.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "author": {
+        "name": "holdequity",
+        "url": "https://github.com/holdequity"
+      }
+    }
+  ]
+}
