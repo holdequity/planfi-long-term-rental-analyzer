@@ -1,7 +1,7 @@
 ---
 name: long-term-rental-analyzer
-version: 1.0.0
-description: Long-term-rental after-tax analyzer for buy-and-hold landlords by orchestrating the public planfi MCP. Use whenever someone wants the AFTER-TAX return on a long-term rental — e.g. "analyze a long-term rental", "buy-and-hold landlord after-tax return", "rental depreciation / recapture / 1031", "Schedule E P&L on a $500k rental", "what's my depreciation tax shelter", "how much tax do I owe when I sell my rental", or "should I do a 1031 exchange". The headline is the year-1 Schedule E P&L + depreciation shelter and the after-tax sale proceeds (with §1250 recapture, LTCG, and NIIT).
+version: 1.2.0
+description: Long-term-rental after-tax analyzer for buy-and-hold landlords by orchestrating the public planfi MCP. Use whenever someone wants the AFTER-TAX return on a long-term rental — e.g. "analyze a long-term rental", "buy-and-hold landlord after-tax return", "rental depreciation / recapture / 1031", "Schedule E P&L on a $500k rental", "what's my depreciation tax shelter", "how much tax do I owe when I sell my rental", "can I do a 1031 exchange", "defer capital gains on my rental sale", "45-day / 180-day exchange deadlines", "like-kind exchange boot / carryover basis", or "is it worth deferring vs paying the tax now". The headline is the year-1 Schedule E P&L + depreciation shelter and the after-tax sale proceeds (with §1250 recapture, LTCG, and NIIT) — plus a full §1031 like-kind exchange planner (analyze_1031_exchange).
 ---
 
 # long-term-rental-analyzer
@@ -29,6 +29,12 @@ This skill uses these tools (may be namespaced, e.g. `mcp__planfi__analyze_renta
   current-law bonus depreciation to front-load the first-year deduction, present-values the
   acceleration vs straight-line, and quantifies the larger §1245 / §1250 recapture at sale. Use it
   when the user wants to accelerate / front-load depreciation to offset income.
+- **`analyze_1031_exchange`** — the §1031 like-kind exchange planner: the 45-day identification and
+  180-day closing deadlines from the sale date, cash-boot + mortgage-relief-boot recognition (the
+  recognized gain you still owe tax on now), the gain deferred, the carryover/substituted basis into
+  the replacement property, the carried §1250 recapture exposure, and the NPV of deferring vs paying
+  the cap-gains + recapture + NIIT now. Use it when the user is doing a REAL like-kind exchange (a
+  replacement property), not just the rental analyzer's `do_1031_exchange` toggle.
 - optional: **`analyze_property_return`** (pre-tax IRR / cash-on-cash on a specific purchase),
   **`analyze_rent_vs_buy`** (own-vs-rent on a primary residence), **`analyze_advanced_taxes`**
   (NIIT / AMT / surtaxes), **`generate_financial_plan`**
@@ -107,6 +113,8 @@ analyze_rental_property({
 - "is this an Airbnb / nightly short-term rental" → use the **str-investment-analyzer** skill
   (`analyze_str_property`).
 - "should I buy a home to live in or keep renting" → use the **rent-vs-buy** skill.
+- "can I do a 1031 exchange / defer the gain into a replacement property" → **`analyze_1031_exchange`**
+  (a real like-kind exchange with deadlines, boot, and carryover basis — not the `do_1031_exchange` toggle).
 
 ### intent → analyze_passive_losses — "can I deduct my rental loss this year", "$25k special allowance / phase-out", "suspended passive losses / carryforward", "do I qualify as a real estate professional", "when do my passive losses free up"
 
@@ -168,6 +176,36 @@ Lead with: the **per-class basis allocation** (5/15/27.5-yr), the **first-year a
 
 **Cross-link:** the front-loaded first-year deduction can create a Schedule E loss whose deductibility is governed by the IRC §469 passive-activity-loss limit — route to **`analyze_passive_losses`** to see how much of it is allowed vs suspended this year. For the underlying buy-and-hold rental P&L, run **`analyze_rental_property`** first.
 
+### intent → analyze_1031_exchange — "can I do a 1031 exchange", "defer capital gains on my rental sale", "45-day / 180-day deadlines", "like-kind exchange boot", "carryover basis into the replacement property", "is it worth deferring vs paying the tax now"
+
+**Always CALL `analyze_1031_exchange` for these — do not answer from general knowledge / quote 1031 rules of thumb from memory. When the user gives the numbers, run it and lead with its real output.**
+
+This is the §1031 like-kind exchange decision — a REAL exchange with an identified replacement property, distinct from the rental analyzer's `do_1031_exchange` boolean (which only zeroes the sale tax). Whenever the user is selling a rental and asks whether they **can do a 1031**, how to **defer the capital gains**, about the **45-day identification** / **180-day closing** deadlines, **boot** (cash boot from un-reinvested proceeds, or mortgage-relief boot when the replacement debt is lower), the **carryover / substituted basis** into the replacement property, the **carried §1250 recapture** exposure, or whether it's **worth deferring vs paying the tax now** — call this tool with their numbers and report what it returns. It nets boot per Treas. Reg. §1.1031(b)-1 (added cash offsets debt relief), recognizes the §1250 recapture layer first, and present-values the deferral net of the lower future depreciation on the reduced basis.
+
+```
+// FICTIONAL example — illustrate the call shape, not a real user's numbers
+analyze_1031_exchange({
+  relinquishedSalePrice: 600000,
+  relinquishedSellingCostPercent: 0.06,
+  relinquishedAdjustedBasis: 300000,
+  relinquishedAccumulatedDepreciation: 80000,
+  relinquishedMortgagePayoff: 200000,
+  replacementPurchasePrice: 700000,
+  replacementMortgage: 336000,
+  saleDateISO: "2026-03-01",
+  filingStatus: "married_joint",
+  ordinaryTaxableIncome: 184000,
+  magi: 300000,
+  discountRate: 0.07,
+  deferralHorizonYears: 10
+})
+// already have a plan? pass { plan_id } so the server derives filing status / taxable income / MAGI and emits a share_url
+```
+
+Lead with: **qualification + key dates** (45-day identification and 180-day closing deadlines from the sale), the **recognized boot gain + tax due now** (cash boot, mortgage-relief boot, and the recapture-first split), the **total gain deferred**, the **replacement-property carryover basis** (and the lower depreciable basis going forward), the **carried §1250 recapture exposure**, and the **NPV of deferral vs paying now** (positive ⇒ defer wins). Surface its `assumed_defaults[]` and `disclosures`.
+
+**Cross-link:** the relinquished-sale figures (sale price, adjusted basis, accumulated depreciation, mortgage payoff) come from **`analyze_rental_property`**'s sale event — run it first to get the gain and recapture. If the user accelerated depreciation via a cost-seg study, the larger recapture it computed (**`analyze_cost_segregation`**) is what carries into the replacement property here.
+
 ## Step 3 — Present the results
 
 - **Lead with the headline:** the year-1 `summary` — `effective_rent`, `schedule_e_taxable_income`
@@ -210,7 +248,8 @@ than guessing — they chain `analyze_rental_property` into the broader plan / r
   a 1031 exchange defers — it does not eliminate — the gain. These are server facts surfaced via
   `disclosures`. The §469 passive-activity-loss limit on deducting the Schedule E loss is handled by
   **`analyze_passive_losses`** (the $25k special allowance, MAGI phase-out, suspended carryforward,
-  and real-estate-professional test).
+  and real-estate-professional test). A REAL §1031 like-kind exchange — deadlines (45/180 days), boot
+  recognition, carryover basis, and the defer-vs-pay-now NPV — is handled by **`analyze_1031_exchange`**.
 - Pass `plan_id` to derive household tax context (marginal rate / filing status / MAGI) and to get a
   `share_url`; the explicit `filing_status` + `ordinary_taxable_income` + `magi` are the fallback.
 - **Related skills:** **str-investment-analyzer** (nightly STR / Airbnb), **rent-vs-buy** (own a

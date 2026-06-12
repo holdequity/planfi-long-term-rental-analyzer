@@ -2,6 +2,14 @@
 
 Long-term-rental after-tax analyzer: 27.5-yr depreciation shelter, ~25% recapture at sale, 1031 like-kind deferral, and a Schedule E P&L (rent, vacancy, opex, NOI). Thin orchestration over the planfi MCP.
 
+### Ask Claude things like…
+
+- "Analyze a $500k long-term rental — year-1 Schedule E P&L and depreciation shelter."
+- "How much tax do I owe when I sell my rental after 10 years?" (§1250 recapture + LTCG + NIIT)
+- "Can I deduct this year's rental loss, or is it suspended?" (§469 / `analyze_passive_losses`)
+- "Should I do a cost-segregation study to front-load depreciation?" (`analyze_cost_segregation`)
+- "Can I do a 1031 exchange to defer the gain on my rental sale — what are the 45/180-day deadlines, the boot, my carryover basis, and is deferring worth it vs paying the tax now?" (`analyze_1031_exchange`)
+
 It's a **thin orchestration layer** over the public **planfi MCP** (`https://ai.planfi.app/mcp`,
 public, no auth) — all the math and financial logic live server-side. The skill itself bundles no
 engine; it just gathers inputs and calls the tools.
