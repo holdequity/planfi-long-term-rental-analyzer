@@ -12,8 +12,8 @@
     {
       "name": "long-term-rental-analyzer",
       "source": "./skills/long-term-rental-analyzer",
-      "description": "Long-term-rental after-tax analyzer: 27.5-yr depreciation shelter, ~25% recapture at sale, 1031 like-kind deferral, and a Schedule E P&L (rent, vacancy, opex, NOI). Thin orchestration over the planfi MCP.",
-      "version": "1.0.0",
+      "description": "Long-term-rental after-tax analyzer: 27.5-yr depreciation shelter, ~25% recapture at sale, 1031 like-kind deferral, a Schedule E P&L (rent, vacancy, opex, NOI), and an IRC §469 passive-activity-loss planner (analyze_passive_losses — the $25k special allowance with its $100k–$150k MAGI phase-out, suspended-loss carryforward schedule, real-estate-professional qualification, and total tax deferred). Thin orchestration over the planfi MCP.",
+      "version": "1.1.0",
       "license": "MIT",
       "author": {
         "name": "holdequity",

@@ -21,8 +21,12 @@ This skill uses these tools (may be namespaced, e.g. `mcp__planfi__analyze_renta
 - **`analyze_rental_property`** (PRIMARY) — the after-tax buy-and-hold rental engine: year-1
   Schedule E P&L + depreciation shelter and the full sale-event tax breakdown (§1250 recapture,
   LTCG, NIIT, or a 1031 deferral).
+- **`analyze_passive_losses`** — the IRC §469 passive-activity-loss planner: the $25k special
+  allowance + MAGI phase-out, suspended-loss carryforward, real-estate-professional qualification,
+  and total tax deferred. Use it when the Schedule E loss can't be fully deducted this year.
 - optional: **`analyze_property_return`** (pre-tax IRR / cash-on-cash on a specific purchase),
-  **`analyze_rent_vs_buy`** (own-vs-rent on a primary residence), **`generate_financial_plan`**
+  **`analyze_rent_vs_buy`** (own-vs-rent on a primary residence), **`analyze_advanced_taxes`**
+  (NIIT / AMT / surtaxes), **`generate_financial_plan`**
   (to derive household tax context — marginal rate, filing status, MAGI — and mint a `plan_id`).
 
 Use whichever name your environment exposes (bare or `mcp__planfi__`-prefixed); below they are
@@ -99,6 +103,37 @@ analyze_rental_property({
   (`analyze_str_property`).
 - "should I buy a home to live in or keep renting" → use the **rent-vs-buy** skill.
 
+### intent → analyze_passive_losses — "can I deduct my rental loss this year", "$25k special allowance / phase-out", "suspended passive losses / carryforward", "do I qualify as a real estate professional", "when do my passive losses free up"
+
+**Always CALL `analyze_passive_losses` for these — do not answer from general knowledge or quote §469 rules of thumb from memory. When the user gives the numbers (loss, MAGI, hours), run it and lead with its real output.**
+
+This is the IRC §469 passive-activity-loss decision. Whenever the user's rental shows a loss and they ask whether they can actually deduct it — or mentions the **$25,000 special allowance**, a **MAGI phase-out** (it bleeds out $0.50 per $1 between $100k and $150k MAGI, gone at $150k), **suspended / carried-forward** passive losses, **real-estate-professional** status (>750 hours AND >50% of personal-service time), or **when the suspended losses free up** (future passive income or a fully taxable disposition) — call this tool with their numbers and report what it returns.
+
+```
+// FICTIONAL example — illustrate the call shape, not a real user's numbers
+analyze_passive_losses({
+  currentYearPassiveLoss: 30000,      // from analyze_rental_property's schedule_e_taxable_income (when negative)
+  magi: 120000,
+  ordinaryTaxableIncome: 120000,
+  filingStatus: "married_joint",
+  activelyParticipates: true,
+  hoursMaterialParticipation: 0,      // set >750 + personalServicePct >0.5 to test real-estate-professional status
+  personalServicePct: 0,
+  priorSuspendedLosses: 0
+})
+// already have a plan? pass { plan_id } so the server derives loss / MAGI / income and emits a share_url
+```
+
+Lead with: the **allowed-vs-suspended split** this year, the **phase-out haircut** detail, the
+**suspended-loss carryforward schedule** + the year the balance frees up, the
+**real-estate-professional break-even** (incremental tax unlocked by qualifying, and any hours
+shortfall), and the **total tax deferred**. Surface its `assumed_defaults[]` and `disclosures`.
+
+**Cross-link:** the loss source is **`analyze_rental_property`** — its `schedule_e_taxable_income`
+(when negative) IS the `currentYearPassiveLoss` you feed here; run the rental analyzer first to get
+the number. For the NIIT / AMT / surtax layer that sits alongside the §469 limit, route to
+**`analyze_advanced_taxes`**.
+
 ## Step 3 — Present the results
 
 - **Lead with the headline:** the year-1 `summary` — `effective_rent`, `schedule_e_taxable_income`
@@ -120,8 +155,11 @@ analyze_rental_property({
   `hold_years` means the sale figures are a hypothetical). The server is the source of truth for what
   it defaulted — don't enumerate defaults from memory.
 - **Disclosures:** relay `disclosures.assumptions` (land excluded from depreciation; closing costs
-  in basis; 25% §1250 cap; §469 passive-loss limits NOT modeled so the shelter is an estimate; 1031
-  defers, not eliminates; real dollars) and that this is a planning estimate, not financial advice.
+  in basis; 25% §1250 cap; 1031 defers, not eliminates; real dollars) and that this is a planning
+  estimate, not financial advice. The Schedule E shelter here is the **gross** loss; the §469
+  passive-loss limit on actually deducting it is now modeled separately by **`analyze_passive_losses`**
+  (the $25k special allowance, MAGI phase-out, suspended-loss carryforward, and real-estate-professional
+  status) — route there when the user asks whether the loss is deductible this year.
 - **`share_url`** — present only when returned (i.e. you passed a `plan_id`) so the user can open the
   full interactive plan on planfi.app.
 
@@ -135,8 +173,10 @@ than guessing — they chain `analyze_rental_property` into the broader plan / r
 
 - All decimals are fractions; all dollars are today's (real) dollars.
 - Depreciation is straight-line over 27.5 years on the building only; the §1250 recapture cap is 25%;
-  the depreciation shelter ignores §469 passive-activity limits (estimate only); a 1031 exchange
-  defers — it does not eliminate — the gain. These are server facts surfaced via `disclosures`.
+  a 1031 exchange defers — it does not eliminate — the gain. These are server facts surfaced via
+  `disclosures`. The §469 passive-activity-loss limit on deducting the Schedule E loss is handled by
+  **`analyze_passive_losses`** (the $25k special allowance, MAGI phase-out, suspended carryforward,
+  and real-estate-professional test).
 - Pass `plan_id` to derive household tax context (marginal rate / filing status / MAGI) and to get a
   `share_url`; the explicit `filing_status` + `ordinary_taxable_income` + `magi` are the fallback.
 - **Related skills:** **str-investment-analyzer** (nightly STR / Airbnb), **rent-vs-buy** (own a
