@@ -24,6 +24,11 @@ This skill uses these tools (may be namespaced, e.g. `mcp__planfi__analyze_renta
 - **`analyze_passive_losses`** — the IRC §469 passive-activity-loss planner: the $25k special
   allowance + MAGI phase-out, suspended-loss carryforward, real-estate-professional qualification,
   and total tax deferred. Use it when the Schedule E loss can't be fully deducted this year.
+- **`analyze_cost_segregation`** — the cost-segregation-study engine: reclassifies the building's
+  basis into 5-yr personal property, 15-yr land improvements, and 27.5/39-yr real property, applies
+  current-law bonus depreciation to front-load the first-year deduction, present-values the
+  acceleration vs straight-line, and quantifies the larger §1245 / §1250 recapture at sale. Use it
+  when the user wants to accelerate / front-load depreciation to offset income.
 - optional: **`analyze_property_return`** (pre-tax IRR / cash-on-cash on a specific purchase),
   **`analyze_rent_vs_buy`** (own-vs-rent on a primary residence), **`analyze_advanced_taxes`**
   (NIIT / AMT / surtaxes), **`generate_financial_plan`**
@@ -133,6 +138,35 @@ shortfall), and the **total tax deferred**. Surface its `assumed_defaults[]` and
 (when negative) IS the `currentYearPassiveLoss` you feed here; run the rental analyzer first to get
 the number. For the NIIT / AMT / surtax layer that sits alongside the §469 limit, route to
 **`analyze_advanced_taxes`**.
+
+### intent → analyze_cost_segregation — "should I do a cost segregation study", "how much depreciation can I front-load", "bonus depreciation on my rental/STR", "first-year write-off on a building", "accelerate depreciation to offset W-2 income", "what's the recapture if I sell after a cost seg"
+
+**Always CALL `analyze_cost_segregation` for these — do not answer from general knowledge or quote bonus-depreciation/MACRS rules of thumb from memory. When the user gives the numbers (building value, placed-in-service year, hold period), run it and lead with its real output.**
+
+This is the cost-segregation-study decision. Whenever the user asks whether to do a **cost seg**, how much **depreciation they can front-load / accelerate**, the **bonus-depreciation** first-year write-off on a building, or the **recapture** they'll owe if they sell after accelerating — call this tool with their numbers and report what it returns. It splits the depreciable basis into 5-yr personal property, 15-yr land improvements, and 27.5/39-yr real property, applies the current-law bonus rate by placed-in-service year, present-values the acceleration vs straight-line, and computes the larger §1245 (ordinary) + unrecaptured §1250 (25%) recapture at sale.
+
+```
+// FICTIONAL example — illustrate the call shape, not a real user's numbers
+analyze_cost_segregation({
+  purchasePrice: 1000000,
+  landValuePercent: 0.20,
+  propertyType: "residential",        // 27.5-yr; "commercial" → 39-yr
+  placedInServiceYear: 2026,          // drives the bonus-depreciation rate (2026 = 20%)
+  fiveYearPercent: 0.20,              // personal property allocation
+  fifteenYearPercent: 0.10,          // land improvements allocation
+  applyBonus: true,
+  holdYears: 10,
+  annualAppreciation: 0.03,
+  filingStatus: "married_joint",
+  ordinaryTaxableIncome: 400000,
+  magi: 0
+})
+// already have a plan? pass { plan_id } so the server derives marginal rate / filing status / MAGI and emits a share_url
+```
+
+Lead with: the **per-class basis allocation** (5/15/27.5-yr), the **first-year accelerated deduction** + tax saved vs straight-line (often 20-30% of basis), the **NPV of the acceleration** (pure timing benefit — lifetime deductions are equal), and the **recapture liability at sale** (§1245 + unrecaptured §1250). Surface its `assumed_defaults[]` and `disclosures`.
+
+**Cross-link:** the front-loaded first-year deduction can create a Schedule E loss whose deductibility is governed by the IRC §469 passive-activity-loss limit — route to **`analyze_passive_losses`** to see how much of it is allowed vs suspended this year. For the underlying buy-and-hold rental P&L, run **`analyze_rental_property`** first.
 
 ## Step 3 — Present the results
 
