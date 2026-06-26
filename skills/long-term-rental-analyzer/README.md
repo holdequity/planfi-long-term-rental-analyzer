@@ -10,7 +10,7 @@ Long-term-rental after-tax analyzer: 27.5-yr depreciation shelter, ~25% recaptur
 - "Should I do a cost-segregation study to front-load depreciation?" (`analyze_cost_segregation`)
 - "Can I do a 1031 exchange to defer the gain on my rental sale — what are the 45/180-day deadlines, the boot, my carryover basis, and is deferring worth it vs paying the tax now?" (`analyze_1031_exchange`)
 
-It's a **thin orchestration layer** over the public **planfi MCP** (`https://ai.planfi.app/mcp`,
+It's a **thin orchestration layer** over the public **planfi MCP** (`https://ai.planfi.app/mcp/free`,
 public, no auth) — all the math and financial logic live server-side. The skill itself bundles no
 engine; it just gathers inputs and calls the tools.
 
@@ -19,11 +19,13 @@ engine; it just gathers inputs and calls the tools.
 If the planfi tools aren't connected yet, run:
 
 ```
-claude mcp add --transport http planfi https://ai.planfi.app/mcp
+claude mcp add --transport http planfi https://ai.planfi.app/mcp/free
 ```
 
+> **Try free, then add your key.** The command above adds the **free** connector — `https://ai.planfi.app/mcp/free` (no key needed). Once you create an API key, add a **new** connector with the MCP url — `https://ai.planfi.app/mcp` — and authorize it with your key.
+
 On **claude.ai**: Settings → Connectors → add a custom connector pointing at
-`https://ai.planfi.app/mcp` (no auth). The skill also reminds you to do this if the tools are
+`https://ai.planfi.app/mcp/free` (no auth). The skill also reminds you to do this if the tools are
 missing when you invoke it.
 
 ## Install

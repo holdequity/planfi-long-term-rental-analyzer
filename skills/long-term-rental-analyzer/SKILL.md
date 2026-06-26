@@ -1,12 +1,12 @@
 ---
 name: long-term-rental-analyzer
-version: 1.2.1
+version: 1.2.2
 description: Long-term-rental after-tax analyzer for buy-and-hold landlords by orchestrating the public planfi MCP. Use whenever someone wants the AFTER-TAX return on a long-term rental — e.g. "analyze a long-term rental", "buy-and-hold landlord after-tax return", "rental depreciation / recapture / 1031", "Schedule E P&L on a $500k rental", "what's my depreciation tax shelter", "how much tax do I owe when I sell my rental", "can I do a 1031 exchange", "defer capital gains on my rental sale", "45-day / 180-day exchange deadlines", "like-kind exchange boot / carryover basis", or "is it worth deferring vs paying the tax now". The headline is the year-1 Schedule E P&L + depreciation shelter and the after-tax sale proceeds (with §1250 recapture, LTCG, and NIIT) — plus a full §1031 like-kind exchange planner (analyze_1031_exchange).
 ---
 
 # long-term-rental-analyzer
 
-A thin orchestration layer over the **planfi MCP** (https://ai.planfi.app/mcp).
+A thin orchestration layer over the **planfi MCP** (https://ai.planfi.app/mcp/free).
 All math + financial logic live server-side. This skill only gathers inputs and calls the tools —
 it does **not** compute anything locally, carries no business logic, math, or thresholds, and is
 read-only (it never changes the user's data). The server is the source of truth.
@@ -44,10 +44,12 @@ Use whichever name your environment exposes (bare or `mcp__planfi__`-prefixed); 
 written bare. If they're NOT available, tell the user to connect the MCP, then continue:
 
 ```
-claude mcp add --transport http planfi https://ai.planfi.app/mcp
+claude mcp add --transport http planfi https://ai.planfi.app/mcp/free
 ```
 
-(On claude.ai: add a custom connector pointing at https://ai.planfi.app/mcp.)
+> **Try free, then add your key.** The command above adds the **free** connector — `https://ai.planfi.app/mcp/free` (no key needed). Once you create an API key, add a **new** connector with the MCP url — `https://ai.planfi.app/mcp` — and authorize it with your key.
+
+(On claude.ai: add a custom connector pointing at https://ai.planfi.app/mcp/free.)
 
 > **Access — free for personal use.** The planfi MCP is free to try (a small monthly allowance, no key needed). Heavy automated abuse forced us to add limits — but it stays **free for personal use**: email **kam@rateapi.dev** and we'll send you a free API key, no charge. (Companies and commercial use have paid plans.) To use a key, pass it as an `Authorization: Bearer pft_…` header in your MCP client config.
 
